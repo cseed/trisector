@@ -40,16 +40,43 @@
           var disc = b*b - 4.0*a*c;
           if (disc < 0)
               return [];
-          else if (disc == 0) {
+          if (disc == 0) {
               var t = -b / (2.0*a);
               return [{x: s.x + t*dx, y: s.y + t*dy}];
-          } else {
-              var sqrtdisc = Math.sqrt(disc);
-              var t1 = (-b + sqrtdisc) / (2.0*a);
-              var t2 = (-b - sqrtdisc) / (2.0*a);
-              return [{x: s.x + t1*dx, y: s.y + t1*dy},
-                      {x: s.x + t2*dx, y: s.y + t2*dy}];
           }
+
+          // disc > 0
+          var sqrtdisc = Math.sqrt(disc);
+          var t1 = (-b + sqrtdisc) / (2.0*a);
+          var t2 = (-b - sqrtdisc) / (2.0*a);
+          return [{x: s.x + t1*dx, y: s.y + t1*dy},
+                  {x: s.x + t2*dx, y: s.y + t2*dy}];
+      }
+
+      function solve_circle_circle(c1, c2) {
+          var d = Math.sqrt(dist2(c1.center, c2.center));
+          var rsum = c1.r + c2.r
+          if (d == 0 || d > rsum)
+              return [];
+          var dx = c2.center.x - c1.center.x,
+              dy = c2.center.y - c1.center.y;
+          if (d == rsum) {
+              return [{x: c1.center.x + (c1.r / d) * dx,
+                       x: c1.center.y + (c1.r / d) * dy}];
+          }
+          var b1 = (d*d + c1.r*c1.r - c2.r*c2.r) / (2.0 * d);
+          var h = Math.sqrt(c1.r*c1.r - b1*b1);
+          console.log(b1, h);
+          var midx = c1.center.x + (b1 / d) * dx,
+              midy = c1.center.y + (b1 / d) * dy;
+          // return [{x: midx, y: midy}];
+          
+          var deltanorm = Math.sqrt(dx*dx + dy*dy);
+          var perpx = -dy / deltanorm,
+              perpy = dx / deltanorm;
+          console.log(perpx, perpy);
+          return [{x: midx + h*perpx, y: midy + h*perpy},
+                  {x: midx - h*perpx, y: midy - h*perpy}]
       }
       
       function dist2(p1, p2) {
@@ -122,6 +149,13 @@
           for (var i = 0; i < lines.length; ++i) {
               var l = lines[i];
               var ps = solve_line_cicle(l, c);
+              for (var j = 0; j < ps.length; ++j) {
+                  add_point(ps[j]);
+              }
+          }
+          for (var i = 0; i < circles.length; ++i) {
+              var c2 = circles[i];
+              var ps = solve_circle_circle(c, c2);
               for (var j = 0; j < ps.length; ++j) {
                   add_point(ps[j]);
               }
@@ -231,15 +265,16 @@
               minx.toString() + " " + miny.toString() + " " + viewwidth.toString() + " " + viewheight.toString());
       }
 
+      function add_random_point() {
+          var x = (Math.random() - 0.5) * 2.0,
+              y = (Math.random() - 0.5) * 2.0;
+          add_point({x: x, y: y});
+      }
+
       $(document).ready(function() {
-          add_point({x: 0.0, y: 0.0});
-          add_point({x: 1.0, y: 0.0});
-          add_point({x: -0.2, y: 1.2});
-          add_point({x: 0.5, y: Math.sqrt(3)/2.0});
-          add_point({x: 0.8, y: 0.2});
-          add_point({x: 0.5, y: 0.8});
-          add_point({x: -0.5, y: -0.8});
-          add_point({x: 0.5, y: -0.5});
+          add_line({x: 0.0, y: 0.0}, {x: 1.0, y: 0.0});
+          add_line({x: 0.0, y: 0.0}, {x: 0.5, y: Math.sqrt(3.0) / 2.0});
+          add_circle({x: 0.0, y: 0.0}, {x: 1.0, y: 1.0});
 
           svg = document.getElementById('svg');
           svg.ondragstart = function() {
@@ -258,5 +293,6 @@
     <p id="circle" onmouseup="select_circle()" style="user-select: none;">circle</p>
     <p onmouseup="zoom(0.9)" style="user-select: none;">zoom in</p>
     <p onmouseup="zoom(1.11)" style="user-select: none;">zoom out</p>
+    <p onmouseup="add_random_point()" style="user-select: none;">random point</p>
   </body>
 </html>
