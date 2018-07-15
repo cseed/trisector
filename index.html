@@ -252,11 +252,8 @@
           $("#circle").css({'user-select': "none", 'color': "red"});
       }
 
-      function zoom(f) {
+      function update_after_zoom() {
           var svg = $("#svg")[0];
-          
-          viewheight = viewheight * f;
-          viewwidth = viewwidth * f;
           
           var minx = viewx - viewwidth / 2.0;
           var miny = viewy - viewheight / 2.0;
@@ -265,7 +262,7 @@
           $(".snappoint").each(function (i, elem) {
               elem.setAttribute('r', viewwidth / 200);
           });
-
+          
           $("#target").each(function (i, elem) {
               elem.setAttribute('r', viewwidth / 200);
           });
@@ -274,9 +271,32 @@
               elem.setAttribute('r', viewwidth / 80);
           });
           
+          var s = 80.0 / 500.0 * viewwidth;
+          var scale_text;
+          if (s > 1000 || s < 0.01)
+              scale_text = s.toExponential(2);
+          else
+              scale_text = s.toPrecision(3);
+          $("#scale").text(scale_text);
+          
           svg.setAttribute(
               "viewBox",
               minx.toString() + " " + miny.toString() + " " + viewwidth.toString() + " " + viewheight.toString());
+      }
+
+      function zoom(f) {
+          viewheight = viewheight * f;
+          viewwidth = viewwidth * f;
+
+          update_after_zoom();
+      }
+
+      function reset_zoom() {
+          viewx = 0.0;
+          viewy = 0.0;
+          viewwidth = 4.0;
+          viewheight = 4.0;
+          update_after_zoom();
       }
 
       function add_random_point() {
@@ -303,14 +323,24 @@
   </header>
   <body onmousemove="move(event)" onmouseup="up(event)">
     <p>
-      <svg id="svg" width="500" height="500" viewBox="-2 -2 4 4" onmousedown="down(event)" style="float: left; stroke-width: 0.008;">
-        <circle id="cursor" cx="0" cy="0" r="0.05" fill="red" />
+      <svg width="500" height="500" style="float: left; stroke-width: 0.008;" onmousedown="down(event)">
+        <svg id="svg" viewBox="-2 -2 4 4">
+          <circle id="cursor" cx="0" cy="0" r="0.05" fill="red" />
+        </svg>
+        
+        <line style="stroke: black; stroke-width: 2;" x1="410" y1="490" x2="490" y2="490" />
+        <line style="stroke: black; stroke-width: 2;" x1="410" y1="485" x2="410" y2="495" />
+        <line style="stroke: black; stroke-width: 2;" x1="490" y1="485" x2="490" y2="495" />
+        <text id="scale" x="450" y="485" style="text-anchor: middle; font-size: 95%;">
+          0.64
+        </text>
       </svg>
     </p>
     <p id="line" style="color: red; user-select: none;" onmouseup="select_line()">line</p>
     <p id="circle" onmouseup="select_circle()" style="user-select: none;">circle</p>
     <p onmouseup="zoom(0.9)" style="user-select: none;">zoom in</p>
     <p onmouseup="zoom(1.11)" style="user-select: none;">zoom out</p>
+    <p onmouseup="reset_zoom()" style="user-select: none;">reset zoom</p>
     <p onmouseup="add_random_point()" style="user-select: none;">random point</p>
     <p id="closest" style="user-select: none;">closest:</p>
   </body>
