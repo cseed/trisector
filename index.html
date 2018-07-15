@@ -114,8 +114,18 @@
               el.setAttribute(k, attrs[k]);
           return el;
       }
-
+      
+      var targetx = Math.cos(Math.PI / 9),
+          targety = Math.sin(Math.PI / 9);
+      var closestd = 1000000.0;
+      
       function add_point(p) {
+          var targetd = dist2(p, {x: targetx, y: targety});
+          if (targetd < closestd) {
+              closestd = targetd;
+              $("#closest").replaceWith("<p id=\"closest\" style=\"user-select: none;\">closest: " + closestd.toString() + "</p>");
+          }
+          
           points.push(p);
           var s = makeSVG('circle', {'class': "snappoint", cx: p.x, cy: -p.y, r: viewwidth / 200, fill: "red"});
           $("#svg").append(s);
@@ -274,9 +284,13 @@
       $(document).ready(function() {
           add_line({x: 0.0, y: 0.0}, {x: 1.0, y: 0.0});
           add_line({x: 0.0, y: 0.0}, {x: 0.5, y: Math.sqrt(3.0) / 2.0});
-          add_circle({x: 0.0, y: 0.0}, {x: 1.0, y: 1.0});
-
+          add_circle({x: 0.0, y: 0.0}, {x: 1.0, y: 0.0});
+          
           svg = document.getElementById('svg');
+          
+          var s = makeSVG('circle', {cx: targetx, cy: -targety, r: viewwidth / 200, fill: "blue"});
+          svg.append(s);
+          
           svg.ondragstart = function() {
               return false;
           };
@@ -294,5 +308,6 @@
     <p onmouseup="zoom(0.9)" style="user-select: none;">zoom in</p>
     <p onmouseup="zoom(1.11)" style="user-select: none;">zoom out</p>
     <p onmouseup="add_random_point()" style="user-select: none;">random point</p>
+    <p id="closest" style="user-select: none;">closest:</p>
   </body>
 </html>
