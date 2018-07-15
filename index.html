@@ -1,0 +1,205 @@
+<html>
+  <header>
+    <title>Trisector</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+      points = [];
+      lines = [];
+      circles = [];
+      
+      function point_sub(p1, p2) {
+          return {x: p1.x - p2.x,
+                  y: p1.y - p2.y}
+      }
+      
+      function solve_line_line(l1, l2) {
+          var s1 = l1[0], s2 = l2[0],
+              e1 = l1[1], e2 = l2[1];
+          var d1 = point_sub(e1, s1),
+              d2 = point_sub(e2, s2),
+              ds = point_sub(s1, s2);
+          var a = d1.x, b = d2.x,
+              c = d1.y, d = d2.y;
+          var det = a*d - b*c;
+          if (det == 0.0) {
+              return null;
+          }
+          var t1 = -(d*ds.x - b*ds.y) / det;
+          var r = {x: s1.x + t1*d1.x,
+                   y: s1.y + t1*d1.y};
+          return r;
+      }
+
+      function solve_line_cicle(l, cir) {
+          console.log(l, cir);
+          var s = l[0], e = l[1];
+          var dx = e.x - s.x, dy = e.y - s.y;
+          var tx = cir.center.x - s.x, ty = cir.center.y - s.y;
+          console.log(dx, dy, tx, ty);
+          var a = dx*dx + dy*dy,
+              b = -2.0*(tx*dx + ty*dy),
+              c = tx*tx + ty*ty - cir.r*cir.r;
+          var disc = b*b - 4.0*a*c;
+          console.log(a, b, c, disc);
+          if (disc < 0)
+              return [];
+          else if (disc == 0) {
+              var t = -b / (2.0*a);
+              return [{x: s.x + t*dx, y: s.y + t*dy}];
+          } else {
+              var sqrtdisc = Math.sqrt(disc);
+              var t1 = (-b + sqrtdisc) / (2.0*a);
+              var t2 = (-b - sqrtdisc) / (2.0*a);
+              return [{x: s.x + t1*dx, y: s.y + t1*dy},
+                      {x: s.x + t2*dx, y: s.y + t2*dy}];
+          }
+      }
+      
+      function dist2(p1, p2) {
+          var dx = p1.x - p2.x;
+          var dy = p1.y - p2.y;
+          return dx*dx + dy*dy;
+      }
+      function closest(p) {
+          var closest = 0
+          var d = dist2(p, points[0]);
+          for (var i = 1; i < points.length; ++i) {
+              var d2 = dist2(p, points[i])
+              if (d2 < d) {
+                  closest = i;
+                  d = d2;
+              }
+          }
+          return points[closest];
+      }
+      function event_local(event) {
+          var svg = document.getElementById('svg');
+          var p = svg.createSVGPoint();
+          p.x = event.clientX;
+          p.y = event.clientY;
+          var p2 = p.matrixTransform(svg.getScreenCTM().inverse());
+          return {x: p2.x, y: -p2.y};
+      }
+
+      function makeSVG(tag, attrs) {
+          var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+          for (var k in attrs)
+              el.setAttribute(k, attrs[k]);
+          return el;
+      }
+
+      function add_point(p) {
+          points.push(p);
+          var s = makeSVG('circle', {cx: p.x, cy: -p.y, r: 0.02, fill: "red"});
+          $("#svg").append(s);
+      }
+
+      function add_line(s, e) {
+          var dx = e.x - s.x, dy = e.y - s.y;
+          var l = [s, e];
+          for (var i = 0; i < lines.length; ++i) {
+              var l2 = lines[i];
+              var p = solve_line_line(l, l2);
+              if (p != null)
+                  add_point(p);
+          }
+          for (var i = 0; i < circles.length; ++i) {
+              var c = circles[i];
+              var ps = solve_line_cicle(l, c);
+              console.log(ps);
+              for (var j = 0; j < ps.length; ++j) {
+                  add_point(ps[j]);
+              }
+          }
+          lines.push(l);
+          $("#svg").append(makeSVG('line', {x1: s.x + 1000.0*dx, y1: -(s.y + 1000.0*dy), x2: e.x - 1000.0*dx, y2: -(e.y - 1000*dy),
+                                            'stroke-width': "1px",
+                                            stroke: "black",
+                                            'vector-effect': "non-scaling-stroke"}));
+      }
+
+      function add_circle(center, p) {
+          var dx = p.x - center.x, dy = p.y - center.y;
+          var r = Math.sqrt(dx*dx + dy*dy);
+          var c = {center: center, r: r};
+          for (var i = 0; i < lines.length; ++i) {
+              var l = lines[i];
+              var ps = solve_line_cicle(l, c);
+              console.log(ps);
+              for (var j = 0; j < ps.length; ++j) {
+                  add_point(ps[j]);
+              }
+          }
+          circles.push(c);
+          $("#svg").append(makeSVG('circle', {cx: center.x, cy: -center.y, r: r,
+                                              fill: "none",
+                                              'stroke-width': "1px",
+                                              stroke: "black",
+                                              'vector-effect': "non-scaling-stroke"}));
+      }
+      
+      var tool = "line";
+      
+      var p1 = null;
+      function up(event) {
+          var svg = document.getElementById('svg');
+          var p = event_local(event);
+          var closestP = closest(p);
+          if (p1 == null)
+              p1 = closestP;
+          else {
+              var p2 = closestP;
+              if (tool == "line")
+                  add_line(p1, p2);
+              else
+                  add_circle(p1, p2);
+              p1 = null;
+          }
+      }
+      function move(event) {
+          var p = event_local(event);
+          var closestP = closest(p);
+          
+          cursor = document.getElementById('cursor');
+          cursor.setAttribute('cx', closestP.x);
+          cursor.setAttribute('cy', -closestP.y);
+          
+          // console.log(svgP, event);
+      }
+
+      function select_line() {
+          console.log('line');
+          tool = "line";
+          $("#line").css({'color': "red"});
+          $("#circle").css({'color': "black"});
+      }
+      
+      function select_circle() {
+          console.log('circle');
+          tool = "circle";
+          $("#line").css({'color': "black"});
+          $("#circle").css({'color': "red"});
+      }
+
+      $(document).ready(function() {
+          add_point({x: 0.0, y: 0.0});
+          add_point({x: 1.0, y: 0.0});
+          add_point({x: -0.2, y: 1.2});
+          add_point({x: 0.5, y: Math.sqrt(3)/2.0});
+          add_point({x: 0.8, y: 0.2});
+          add_point({x: 0.5, y: 0.8});
+          add_point({x: -0.5, y: -0.8});
+          add_point({x: 0.5, y: -0.5});
+      });
+    </script>
+  </header>
+  <body>
+    <p>
+      <svg id="svg" width="500" height="500" viewBox="-2 -2 4 4" onmousemove="move(event)" onmouseup="up(event)" style="float: left;">
+        <circle id="cursor" cx="0" cy="0" r="0.05" fill="red" />
+      </svg>
+    </p>
+    <p id="line" style="color: red;" onmouseup="select_line()">line</p>
+    <p id="circle" onmouseup="select_circle()">circle</p>
+  </body>
+</html>
