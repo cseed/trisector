@@ -31,16 +31,13 @@
       }
 
       function solve_line_cicle(l, cir) {
-          console.log(l, cir);
           var s = l[0], e = l[1];
           var dx = e.x - s.x, dy = e.y - s.y;
           var tx = cir.center.x - s.x, ty = cir.center.y - s.y;
-          console.log(dx, dy, tx, ty);
           var a = dx*dx + dy*dy,
               b = -2.0*(tx*dx + ty*dy),
               c = tx*tx + ty*ty - cir.r*cir.r;
           var disc = b*b - 4.0*a*c;
-          console.log(a, b, c, disc);
           if (disc < 0)
               return [];
           else if (disc == 0) {
@@ -60,10 +57,13 @@
           var dy = p1.y - p2.y;
           return dx*dx + dy*dy;
       }
+
+      var viewx = 0.0, viewy = 0.0, viewwidth = 4, viewheight = 4;
+
       function closest(p) {
-          var closest = 0
-          var d = dist2(p, points[0]);
-          for (var i = 1; i < points.length; ++i) {
+          var closest = null;
+          var d = viewwidth / 20;
+          for (var i = 0; i < points.length; ++i) {
               var d2 = dist2(p, points[i])
               if (d2 < d) {
                   closest = i;
@@ -90,7 +90,7 @@
 
       function add_point(p) {
           points.push(p);
-          var s = makeSVG('circle', {cx: p.x, cy: -p.y, r: 0.02, fill: "red"});
+          var s = makeSVG('circle', {'class': "snappoint", cx: p.x, cy: -p.y, r: 0.02, fill: "red"});
           $("#svg").append(s);
       }
 
@@ -106,16 +106,13 @@
           for (var i = 0; i < circles.length; ++i) {
               var c = circles[i];
               var ps = solve_line_cicle(l, c);
-              console.log(ps);
               for (var j = 0; j < ps.length; ++j) {
                   add_point(ps[j]);
               }
           }
           lines.push(l);
           $("#svg").append(makeSVG('line', {x1: s.x + 1000.0*dx, y1: -(s.y + 1000.0*dy), x2: e.x - 1000.0*dx, y2: -(e.y - 1000*dy),
-                                            'stroke-width': "1px",
-                                            stroke: "black",
-                                            'vector-effect': "non-scaling-stroke"}));
+                                            stroke: "black"}));
       }
 
       function add_circle(center, p) {
@@ -125,7 +122,6 @@
           for (var i = 0; i < lines.length; ++i) {
               var l = lines[i];
               var ps = solve_line_cicle(l, c);
-              console.log(ps);
               for (var j = 0; j < ps.length; ++j) {
                   add_point(ps[j]);
               }
@@ -133,9 +129,7 @@
           circles.push(c);
           $("#svg").append(makeSVG('circle', {cx: center.x, cy: -center.y, r: r,
                                               fill: "none",
-                                              'stroke-width': "1px",
-                                              stroke: "black",
-                                              'vector-effect': "non-scaling-stroke"}));
+                                              stroke: "black"}));
       }
       
       var tool = "line";
@@ -159,26 +153,49 @@
       function move(event) {
           var p = event_local(event);
           var closestP = closest(p);
-          
           cursor = document.getElementById('cursor');
-          cursor.setAttribute('cx', closestP.x);
-          cursor.setAttribute('cy', -closestP.y);
-          
-          // console.log(svgP, event);
+          if (closestP != null) {
+              cursor.removeAttribute('style');
+              cursor.setAttribute('cx', closestP.x);
+              cursor.setAttribute('cy', -closestP.y);
+          } else {
+              cursor.style.display = 'none';
+          }
       }
 
       function select_line() {
-          console.log('line');
           tool = "line";
           $("#line").css({'color': "red"});
           $("#circle").css({'color': "black"});
       }
       
       function select_circle() {
-          console.log('circle');
           tool = "circle";
           $("#line").css({'color': "black"});
           $("#circle").css({'color': "red"});
+      }
+
+      function zoom(f) {
+          var svg = $("#svg")[0];
+          
+          viewheight = viewheight * f;
+          viewwidth = viewwidth * f;
+          
+          minx = viewx - viewwidth / 2.0;
+          miny = viewx - viewheight / 2.0;
+          
+          svg.style["strokeWidth"] = viewwidth / 500;
+          $(".snappoint").each(function (i, elem) {
+              elem.setAttribute('r', viewwidth / 200);
+          });
+          
+          $("#cursor").each(function (i, elem) {
+              elem.setAttribute('r', viewwidth / 80);
+          });
+          
+          svg.setAttribute(
+              "viewBox",
+              minx.toString() + " " + miny.toString() + " " + viewwidth.toString() + " " + viewheight.toString());
       }
 
       $(document).ready(function() {
@@ -190,16 +207,23 @@
           add_point({x: 0.5, y: 0.8});
           add_point({x: -0.5, y: -0.8});
           add_point({x: 0.5, y: -0.5});
+
+          svg = document.getElementById('svg');
+          svg.ondragstart = function() {
+              return false;
+          };
       });
     </script>
   </header>
   <body>
     <p>
-      <svg id="svg" width="500" height="500" viewBox="-2 -2 4 4" onmousemove="move(event)" onmouseup="up(event)" style="float: left;">
+      <svg id="svg" width="500" height="500" viewBox="-2 -2 4 4" onmousemove="move(event)" onmouseup="up(event)" style="float: left; stroke-width: 0.008;">
         <circle id="cursor" cx="0" cy="0" r="0.05" fill="red" />
       </svg>
     </p>
     <p id="line" style="color: red;" onmouseup="select_line()">line</p>
     <p id="circle" onmouseup="select_circle()">circle</p>
+    <p onmouseup="zoom(0.9)">zoom in</p>
+    <p onmouseup="zoom(1.11)">zoom out</p>
   </body>
 </html>
