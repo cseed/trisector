@@ -265,6 +265,10 @@
           $(".snappoint").each(function (i, elem) {
               elem.setAttribute('r', viewwidth / 200);
           });
+
+          $("#target").each(function (i, elem) {
+              elem.setAttribute('r', viewwidth / 200);
+          });
           
           $("#cursor").each(function (i, elem) {
               elem.setAttribute('r', viewwidth / 80);
@@ -288,7 +292,7 @@
           
           svg = document.getElementById('svg');
           
-          var s = makeSVG('circle', {cx: targetx, cy: -targety, r: viewwidth / 200, fill: "blue"});
+          var s = makeSVG('circle', {'id': 'target', cx: targetx, cy: -targety, r: viewwidth / 200, fill: "blue"});
           svg.append(s);
           
           svg.ondragstart = function() {
