@@ -134,45 +134,78 @@
       
       var tool = "line";
       
+      var downp = null;
+      var in_drag = false;
+      
+      function down(event) {
+          var svg = document.getElementById('svg');
+          downp = event_local(event);
+      }
+      
       var p1 = null;
       function up(event) {
-          var svg = document.getElementById('svg');
-          var p = event_local(event);
-          var closestP = closest(p);
-          if (p1 == null)
-              p1 = closestP;
-          else {
-              var p2 = closestP;
-              if (tool == "line")
-                  add_line(p1, p2);
-              else
-                  add_circle(p1, p2);
-              p1 = null;
+          if (downp != null) {
+              if (!in_drag) {
+                  var svg = document.getElementById('svg');
+                  var p = event_local(event);
+                  var closestP = closest(p);
+                  if (p1 == null)
+                      p1 = closestP;
+                  else {
+                      var p2 = closestP;
+                      if (tool == "line")
+                          add_line(p1, p2);
+                      else
+                          add_circle(p1, p2);
+                      p1 = null;
+                  }
+              }
+              
+              downp = null;
+              in_drag = false;
           }
       }
+      
       function move(event) {
           var p = event_local(event);
-          var closestP = closest(p);
-          cursor = document.getElementById('cursor');
-          if (closestP != null) {
-              cursor.removeAttribute('style');
-              cursor.setAttribute('cx', closestP.x);
-              cursor.setAttribute('cy', -closestP.y);
+          if (downp != null) {
+              in_drag = true;
+              var dx = p.x - downp.x,
+                  dy = p.y - downp.y;
+              
+              viewx = viewx - dx;
+              viewy = viewy + dy;
+              
+              var minx = viewx - viewwidth / 2.0;
+              var miny = viewy - viewheight / 2.0;
+              
+              var svg = document.getElementById('svg');
+              svg.setAttribute(
+                  "viewBox",
+                  minx.toString() + " " + miny.toString() + " " + viewwidth.toString() + " " + viewheight.toString());
           } else {
-              cursor.style.display = 'none';
+              var closestP = closest(p);
+              cursor = document.getElementById('cursor');
+              if (closestP != null) {
+                  cursor.removeAttribute('style');
+                  cursor.setAttribute('cx', closestP.x);
+                  cursor.setAttribute('cy', -closestP.y);
+              } else {
+                  cursor.style.display = 'none';
+              }
           }
       }
 
       function select_line() {
           tool = "line";
-          $("#line").css({'color': "red"});
-          $("#circle").css({'color': "black"});
+          $("#line").css({'user-select': "none", 'color': "red"});
+          $("#circle").css({'user-select': "none", 'color': "black"});
       }
       
       function select_circle() {
           tool = "circle";
-          $("#line").css({'color': "black"});
-          $("#circle").css({'color': "red"});
+          $("#line").css({'user-select': "none", 'color': "black"});
+          $("#circle").css({'user-select': "none", 'color': "red"});
       }
 
       function zoom(f) {
@@ -181,8 +214,8 @@
           viewheight = viewheight * f;
           viewwidth = viewwidth * f;
           
-          minx = viewx - viewwidth / 2.0;
-          miny = viewx - viewheight / 2.0;
+          var minx = viewx - viewwidth / 2.0;
+          var miny = viewy - viewheight / 2.0;
           
           svg.style["strokeWidth"] = viewwidth / 500;
           $(".snappoint").each(function (i, elem) {
@@ -215,15 +248,15 @@
       });
     </script>
   </header>
-  <body>
+  <body onmousemove="move(event)" onmouseup="up(event)">
     <p>
-      <svg id="svg" width="500" height="500" viewBox="-2 -2 4 4" onmousemove="move(event)" onmouseup="up(event)" style="float: left; stroke-width: 0.008;">
+      <svg id="svg" width="500" height="500" viewBox="-2 -2 4 4" onmousedown="down(event)" style="float: left; stroke-width: 0.008;">
         <circle id="cursor" cx="0" cy="0" r="0.05" fill="red" />
       </svg>
     </p>
-    <p id="line" style="color: red;" onmouseup="select_line()">line</p>
-    <p id="circle" onmouseup="select_circle()">circle</p>
-    <p onmouseup="zoom(0.9)">zoom in</p>
-    <p onmouseup="zoom(1.11)">zoom out</p>
+    <p id="line" style="color: red; user-select: none;" onmouseup="select_line()">line</p>
+    <p id="circle" onmouseup="select_circle()" style="user-select: none;">circle</p>
+    <p onmouseup="zoom(0.9)" style="user-select: none;">zoom in</p>
+    <p onmouseup="zoom(1.11)" style="user-select: none;">zoom out</p>
   </body>
 </html>
