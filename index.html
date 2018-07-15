@@ -90,7 +90,7 @@
 
       function add_point(p) {
           points.push(p);
-          var s = makeSVG('circle', {'class': "snappoint", cx: p.x, cy: -p.y, r: 0.02, fill: "red"});
+          var s = makeSVG('circle', {'class': "snappoint", cx: p.x, cy: -p.y, r: viewwidth / 200, fill: "red"});
           $("#svg").append(s);
       }
 
